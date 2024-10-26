@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crossword Creator Game</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <h1>Crossword Creator Game</h1>
+
+      <!-- Word Input Screen -->
+      <div id="word-input-screen">
+        <h2>Add New Word</h2>
+        <input type="text" id="word-input" placeholder="Enter a word" />
+        <input
+          type="text"
+          id="definition-input"
+          placeholder="Enter a definition (optional)"
+        />
+        <button id="add-word-btn">Add Word</button>
+        <div id="word-list">
+          <h3>Word List</h3>
+          <ul id="words"></ul>
+        </div>
+        <button id="clear-words-btn">Clear All Words</button>
+        <button id="create-crossword-btn">Create Crossword</button>
+        <p id="word-count">Words: 0</p>
+      </div>
+
+      <!-- Crossword Creation Screen -->
+      <div id="crossword-creation-screen" style="display: none">
+        <h2>Solve Crossword</h2>
+        <div class="game-container">
+          <!-- Left panel for definitions -->
+          <div class="definitions-panel">
+            <div id="across-definitions">
+              <h3>Across</h3>
+              <div class="definitions-list"></div>
+            </div>
+            <div id="down-definitions">
+              <h3>Down</h3>
+              <div class="definitions-list"></div>
+            </div>
+          </div>
+
+          <!-- Center panel for crossword grid -->
+          <div class="crossword-panel">
+            <div id="crossword-grid"></div>
+          </div>
+        </div>
+
+        <div id="tool-panel">
+          <button id="clear-crossword-btn">Clear Answers</button>
+          <button id="check-solution-btn">Check Solution</button>
+          <button id="back-to-words-btn">Back to Words</button>
+        </div>
+      </div>
+    </div>
+    <script src="script.js"></script>
+  </body>
+</html>
