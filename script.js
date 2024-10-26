@@ -137,7 +137,8 @@ let crossword = {
   grid: [],
   words: [], // Words with their positions
   solution: [], // Complete solution grid
-  playerGrid: [] // Player's current progress
+  playerGrid: [], // Player's current progress
+  currentDirection: "horizontal" // Track current direction
 };
 
 // Add these variables at the top of the file, after crossword declaration
@@ -156,7 +157,8 @@ function generateCrossword() {
     grid: [],
     words: [],
     solution: [],
-    playerGrid: []
+    playerGrid: [],
+    currentDirection: "horizontal" // Track current direction
   };
 
   // Sort words by length (longer words first)
@@ -559,10 +561,10 @@ function handleCellInput(event, row, col) {
     crossword.playerGrid[row][col] = "";
     input.parentElement.style.backgroundColor = "white";
 
-    // Move to previous input on backspace
-    const prevInput = findPreviousInput(row, col);
+    // Find previous input in current word
+    const prevInput = findPreviousInWord(row, col);
     if (prevInput) {
-      prevInput.focus();
+      setTimeout(() => prevInput.focus(), 0);
     }
     return;
   }
@@ -575,7 +577,7 @@ function handleCellInput(event, row, col) {
     crossword.playerGrid[row][col] = value;
     input.value = value;
 
-    // Check all words that contain this cell
+    // Check word completion
     crossword.words.forEach((word) => {
       if (isPartOfWord(row, col, word)) {
         const isWordCorrect = checkWord(word);
@@ -585,10 +587,10 @@ function handleCellInput(event, row, col) {
       }
     });
 
-    // Move to next input automatically
-    const nextInput = findNextInput(row, col);
+    // Find next input in current word
+    const nextInput = findNextInWord(row, col);
     if (nextInput) {
-      nextInput.focus();
+      setTimeout(() => nextInput.focus(), 0);
     }
   } else {
     // Reset invalid input
@@ -596,95 +598,129 @@ function handleCellInput(event, row, col) {
   }
 }
 
-// Add findPreviousInput function
-function findPreviousInput(row, col) {
-  // Try to find previous cell in same row
-  const prevCell = document.querySelector(
-    `.grid-cell[style*="grid-area: ${row + 1} / ${col}"] input`
-  );
+// Add function to find the word at current position
+function findWordAtPosition(row, col) {
+  // First try to find a word in the current direction
+  let word = crossword.words.find((w) => {
+    if (crossword.currentDirection === "horizontal") {
+      return (
+        w.horizontal &&
+        w.row === row &&
+        col >= w.col &&
+        col < w.col + w.word.length
+      );
+    } else {
+      return (
+        !w.horizontal &&
+        w.col === col &&
+        row >= w.row &&
+        row < w.row + w.word.length
+      );
+    }
+  });
 
-  if (prevCell) return prevCell;
+  // If no word found in current direction, try the other direction
+  if (!word) {
+    word = crossword.words.find((w) => {
+      if (crossword.currentDirection === "horizontal") {
+        return (
+          !w.horizontal &&
+          w.col === col &&
+          row >= w.row &&
+          row < w.row + w.word.length
+        );
+      } else {
+        return (
+          w.horizontal &&
+          w.row === row &&
+          col >= w.col &&
+          col < w.col + w.word.length
+        );
+      }
+    });
 
-  // If no previous cell in same row, try last cell in previous row
-  const lastColInPrevRow = document.querySelector(
-    `.grid-cell[style*="grid-area: ${row} / ${crossword.grid[0].length}"] input`
-  );
-
-  return lastColInPrevRow;
-}
-
-// Add helper function to find next input
-function findNextInput(row, col) {
-  const currentCell = document.querySelector(
-    `.grid-cell[style*="grid-row: ${row - minRow + 1}"][style*="grid-column: ${
-      col - minCol + 1
-    }"]`
-  );
-
-  // Try to find next cell in same row
-  const nextCell = document.querySelector(
-    `.grid-cell[style*="grid-row: ${row - minRow + 1}"][style*="grid-column: ${
-      col - minCol + 2
-    }"] input`
-  );
-
-  if (nextCell) return nextCell;
-
-  // If no next cell in same row, try first cell in next row
-  const nextRowCell = document.querySelector(
-    `.grid-cell[style*="grid-row: ${
-      row - minRow + 2
-    }"][style*="grid-column: 1"] input`
-  );
-
-  return nextRowCell;
-}
-
-// Add helper function to check if a cell is part of a word
-function isPartOfWord(row, col, word) {
-  if (word.horizontal) {
-    return (
-      row === word.row && col >= word.col && col < word.col + word.word.length
-    );
-  } else {
-    return (
-      col === word.col && row >= word.row && row < word.row + word.word.length
-    );
-  }
-}
-
-// Add helper function to highlight word
-function highlightWord(word, isCorrect) {
-  for (let i = 0; i < word.word.length; i++) {
-    const row = word.horizontal ? word.row : word.row + i;
-    const col = word.horizontal ? word.col + i : word.col;
-    const cell = document.querySelector(
-      `.grid-cell[style*="grid-row: ${row + 1}"][style*="grid-column: ${
-        col + 1
-      }"]`
-    );
-    if (cell) {
-      cell.style.backgroundColor = isCorrect ? "#e6ffe6" : "white";
+    // If found word in other direction, switch direction
+    if (word) {
+      crossword.currentDirection =
+        crossword.currentDirection === "horizontal" ? "vertical" : "horizontal";
     }
   }
+
+  return word;
 }
 
-// Update keyboard navigation
+// Add function to find next input in current word
+function findNextInWord(row, col) {
+  const currentWord = findWordAtPosition(row, col);
+  if (!currentWord) return null;
+
+  if (currentWord.horizontal) {
+    // If we're not at the end of the word
+    if (col < currentWord.col + currentWord.word.length - 1) {
+      return document.querySelector(
+        `.grid-cell[style*="grid-area: ${row + 1} / ${col + 2}"] input`
+      );
+    }
+  } else {
+    // If we're not at the end of the word
+    if (row < currentWord.row + currentWord.word.length - 1) {
+      return document.querySelector(
+        `.grid-cell[style*="grid-area: ${row + 2} / ${col + 1}"] input`
+      );
+    }
+  }
+  return null;
+}
+
+// Add function to find previous input in current word
+function findPreviousInWord(row, col) {
+  const currentWord = findWordAtPosition(row, col);
+  if (!currentWord) return null;
+
+  if (currentWord.horizontal) {
+    // If we're not at the start of the word
+    if (col > currentWord.col) {
+      return document.querySelector(
+        `.grid-cell[style*="grid-area: ${row + 1} / ${col}"] input`
+      );
+    }
+  } else {
+    // If we're not at the start of the word
+    if (row > currentWord.row) {
+      return document.querySelector(
+        `.grid-cell[style*="grid-area: ${row} / ${col + 1}"] input`
+      );
+    }
+  }
+  return null;
+}
+
+// Update addKeyboardNavigation function
 function addKeyboardNavigation() {
   document.addEventListener("keydown", (e) => {
     const activeElement = document.activeElement;
     if (!activeElement.matches(".cell-input")) return;
 
-    if (e.key === "Backspace" && activeElement.value === "") {
-      e.preventDefault();
-      const cell = activeElement.parentElement;
-      const currentRow = parseInt(cell.style.gridArea.split(" / ")[0]);
-      const currentCol = parseInt(cell.style.gridArea.split(" / ")[1]);
-      const prevInput = findPreviousInput(currentRow - 1, currentCol - 1);
-      if (prevInput) {
-        prevInput.focus();
-        prevInput.value = "";
-      }
+    const cell = activeElement.parentElement;
+    const currentRow = parseInt(cell.style.gridArea.split(" / ")[0]) - 1;
+    const currentCol = parseInt(cell.style.gridArea.split(" / ")[1]) - 1;
+
+    switch (e.key) {
+      case "ArrowRight":
+        crossword.currentDirection = "horizontal";
+        break;
+      case "ArrowDown":
+        crossword.currentDirection = "vertical";
+        break;
+      case "Backspace":
+        if (activeElement.value === "") {
+          e.preventDefault();
+          const prevInput = findPreviousInWord(currentRow, currentCol);
+          if (prevInput) {
+            prevInput.focus();
+          }
+        }
+        break;
     }
   });
 }
@@ -1185,3 +1221,30 @@ style.textContent = `
   }
 `;
 document.head.appendChild(style);
+
+// Add isPartOfWord function
+function isPartOfWord(row, col, word) {
+  if (word.horizontal) {
+    return (
+      row === word.row && col >= word.col && col < word.col + word.word.length
+    );
+  } else {
+    return (
+      col === word.col && row >= word.row && row < word.row + word.word.length
+    );
+  }
+}
+
+// Add highlightWord function if missing
+function highlightWord(word, isCorrect) {
+  for (let i = 0; i < word.word.length; i++) {
+    const row = word.horizontal ? word.row : word.row + i;
+    const col = word.horizontal ? word.col + i : word.col;
+    const cell = document.querySelector(
+      `.grid-cell[style*="grid-area: ${row + 1} / ${col + 1}"]`
+    );
+    if (cell) {
+      cell.style.backgroundColor = isCorrect ? "#e6ffe6" : "white";
+    }
+  }
+}
